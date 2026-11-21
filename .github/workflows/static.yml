@@ -1,5 +1,4 @@
-
-name: Build and Deploy World Tycoon
+name: Deploy World Tycoon
 
 on:
   push:
@@ -11,48 +10,39 @@ permissions:
   pages: write
   id-token: write
 
-concurrency:
-  group: pages
-  cancel-in-progress: true
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-      - name: Checkout
+      - name: Download repository
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Install Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Unpack and build game
+      - name: Build game
         run: |
           mkdir project
           unzip -q World_Tycoon_Android_Starter.zip -d project
           GAME_DIR=$(dirname "$(find project -name package.json -print -quit)")
-          if [ ! -f "$GAME_DIR/package.json" ]; then
-            echo "Could not find package.json"
-            exit 1
-          fi
-          npm --prefix "$GAME_DIR" install
-          npm --prefix "$GAME_DIR" run build -- --base=/World-Owners/
-          mkdir site
-          cp -R "$GAME_DIR/dist/." site/
+          cd "$GAME_DIR"
+          npm install
+          npm run build -- --base=/World-Owners/
+          cd -
+          touch "$GAME_DIR/dist/.nojekyll"
 
-      - name: Setup Pages
+      - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload website
+      - name: Upload game
         uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: project/world_tycoon_android_starter/dist
 
-      - name: Deploy website
-        id: deployment
+      - name: Publish game
         uses: actions/deploy-pages@v4
